@@ -1,6 +1,8 @@
 # Version 2.0.2
 Unreleased
 
+- Update transaction.py: Catch DBAPIError to handle errors not covered
+  by DatabaseError. (#207)
 
 # Version 2.0.1
 April 14, 2023

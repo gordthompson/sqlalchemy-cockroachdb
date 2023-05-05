@@ -100,7 +100,7 @@ def _txn_retry_loop(conn, callback, max_retries, max_backoff):
                 with _NestedTransaction(conn):
                     ret = callback(conn)
                     return ret
-            except sqlalchemy.exc.DatabaseError as e:
+            except sqlalchemy.exc.DBAPIError as e:
                 if max_retries is not None and retry_count >= max_retries:
                     raise
                 retry_count += 1
