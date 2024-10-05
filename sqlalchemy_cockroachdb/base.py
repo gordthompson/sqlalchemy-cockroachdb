@@ -340,6 +340,23 @@ class CockroachDBDialect(PGDialect):
             )
         return result
 
+    def get_multi_indexes(
+        self, connection, schema, filter_names, scope, kind, **kw
+    ):
+        result = super().get_multi_indexes(
+            connection, schema, filter_names, scope, kind, **kw
+        )
+        if schema is None:
+            result = dict(result)
+            for k in [
+                (None, "spatial_ref_sys"),
+                (None, "geometry_columns"),
+                (None, "geography_columns"),
+            ]:
+                result.pop(k, None)
+        return result
+
+
     def get_foreign_keys_v1(self, conn, table_name, schema=None, **kw):
         fkeys = []
         FK_REGEX = re.compile(r"(?P<referred_table>.+)?\.\[(?P<referred_columns>.+)?]")
@@ -505,6 +522,20 @@ class CockroachDBDialect(PGDialect):
         if pk["name"] != "primary":
             res["name"] = pk["name"]
         return res
+
+    def get_multi_pk_constraint(self, connection, schema, filter_names, scope, kind, **kw):
+        result = super().get_multi_pk_constraint(
+            connection, schema, filter_names, scope, kind, **kw
+        )
+        if schema is None:
+            result = dict(result)
+            for k in [
+                (None, "spatial_ref_sys"),
+                (None, "geometry_columns"),
+                (None, "geography_columns"),
+            ]:
+                result.pop(k, None)
+        return result
 
     def get_unique_constraints(self, conn, table_name, schema=None, **kw):
         if self._is_v21plus:
