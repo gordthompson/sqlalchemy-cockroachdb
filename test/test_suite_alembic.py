@@ -8,6 +8,7 @@ from alembic.testing.suite import BackendAlterColumnTest as _BackendAlterColumnT
 from alembic.testing.suite import IncludeHooksTest as _IncludeHooksTest
 
 
+# TODO: delete this class after SQLA #11961 is released
 class AutogenerateCommentsTest(_AutogenerateCommentsTest):
     @skip("cockroachdb")
     def test_add_column_comment(self):
