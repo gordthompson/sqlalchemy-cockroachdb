@@ -8,7 +8,7 @@ from alembic.testing.suite import BackendAlterColumnTest as _BackendAlterColumnT
 from alembic.testing.suite import IncludeHooksTest as _IncludeHooksTest
 
 
-# TODO: delete this class after SQLA #11961 is released
+# TODO: delete this class after next SQLA release
 class AutogenerateCommentsTest(_AutogenerateCommentsTest):
     @skip("cockroachdb")
     def test_add_column_comment(self):
@@ -43,6 +43,7 @@ class AutogenerateCommentsTest(_AutogenerateCommentsTest):
         pass
 
 
+# TODO: delete this class after next SQLA release
 class AutogenerateComputedTest(_AutogenerateComputedTest):
     @skip("cockroachdb")
     def test_add_computed_column(self):
@@ -67,6 +68,7 @@ class AutogenerateFKOptionsTest(_AutogenerateFKOptionsTest):
         pass
 
 
+# TODO: delete this class after next SQLA release
 class AutogenerateForeignKeysTest(_AutogenerateForeignKeysTest):
     @skip("cockroachdb")
     def test_add_composite_fk_with_name(self):
@@ -118,6 +120,7 @@ class BackendAlterColumnTest(_BackendAlterColumnTest):
         pass
 
 
+# TODO: delete this class after next SQLA release
 class IncludeHooksTest(_IncludeHooksTest):
     @skip("cockroachdb")
     def test_add_metadata_fk(self):
