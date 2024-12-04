@@ -51,7 +51,7 @@ jobs:
           "psycopg"
         ]
         exclude:
-          - crdb-version: cockroach-unstable:v24.3.0-beta.3
+          - crdb-version: cockroach:latest-v24.3
             db-alias: asyncpg
     env:
       TOXENV: py39
