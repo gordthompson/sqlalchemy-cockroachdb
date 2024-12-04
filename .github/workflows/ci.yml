@@ -43,7 +43,7 @@ jobs:
           "cockroach:latest-v23.2",
           "cockroach:latest-v24.1",
           "cockroach:latest-v24.2",
-          "cockroach-unstable:v24.3.0-beta.3"
+          "cockroach:latest-v24.3"
         ]
         db-alias: [
           "psycopg2",
