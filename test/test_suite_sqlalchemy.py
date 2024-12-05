@@ -9,6 +9,7 @@ from sqlalchemy.testing.suite import (
 )
 from sqlalchemy.testing.suite import HasIndexTest as _HasIndexTest
 from sqlalchemy.testing.suite import HasTableTest as _HasTableTest
+from sqlalchemy.testing.suite import IntegerTest as _IntegerTest
 from sqlalchemy.testing.suite import InsertBehaviorTest as _InsertBehaviorTest
 from sqlalchemy.testing.suite import IsolationLevelTest as _IsolationLevelTest
 from sqlalchemy.testing.suite import (
@@ -407,6 +408,13 @@ class HasIndexTest(_HasIndexTest):
 class HasTableTest(_HasTableTest):
     @skip("cockroachdb")
     def test_has_table_cache(self):
+        pass
+
+
+class IntegerTest(_IntegerTest):
+    @skip("cockroachdb")
+    def test_huge_int(self):
+        # fixture not compatible with provision.py change for CRDB 24.x
         pass
 
 
