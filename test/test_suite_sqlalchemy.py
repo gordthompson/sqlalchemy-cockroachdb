@@ -458,12 +458,6 @@ class LongNameBlowoutTest(_LongNameBlowoutTest):
         if not (config.db.dialect.driver == "asyncpg" and not config.db.dialect._is_v231plus):
             super().test_long_convention_name(type_, metadata, connection, None)
 
-    @quote_fixtures
-    def test_get_indexes(self, name):
-        # could not decorrelate subquery
-        if not (config.db.dialect.driver == "asyncpg" and not config.db.dialect._is_v231plus):
-            super().test_get_indexes(name, None)
-
 
 class NumericTest(_NumericTest):
     def test_numeric_as_float(self, do_numeric_test):
@@ -490,6 +484,12 @@ class QuotedNameArgumentTest(_QuotedNameArgumentTest):
             ("quote ' one",),
             ('quote " two', testing.requires.symbol_names_w_double_quote),
         )(fn)
+
+    @quote_fixtures
+    def test_get_indexes(self, name):
+        # could not decorrelate subquery
+        if not (config.db.dialect.driver == "asyncpg" and not config.db.dialect._is_v231plus):
+            super().test_get_indexes(name, None)
 
 
 class TrueDivTest(_TrueDivTest):
