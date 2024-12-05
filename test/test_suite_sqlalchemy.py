@@ -16,6 +16,7 @@ from sqlalchemy.testing.suite import (
     LongNameBlowoutTest as _LongNameBlowoutTest,
 )
 from sqlalchemy.testing.suite import NumericTest as _NumericTest
+from sqlalchemy.testing.suite import PingTest as _PingTest
 from sqlalchemy.testing.suite import (
     QuotedNameArgumentTest as _QuotedNameArgumentTest,
 )
@@ -411,17 +412,17 @@ class HasTableTest(_HasTableTest):
         pass
 
 
-class IntegerTest(_IntegerTest):
-    @skip("cockroachdb")
-    def test_huge_int(self):
-        # fixture not compatible with provision.py change for CRDB 24.x
-        pass
-
-
 class InsertBehaviorTest(_InsertBehaviorTest):
     @skip("cockroachdb")
     def test_no_results_for_non_returning_insert(self):
         # we support RETURNING, so this should not be necessary
+        pass
+
+
+class IntegerTest(_IntegerTest):
+    @skip("cockroachdb")
+    def test_huge_int(self):
+        # fixture not compatible with provision.py change for CRDB 24.x
         pass
 
 
@@ -457,14 +458,6 @@ class LongNameBlowoutTest(_LongNameBlowoutTest):
         if not (config.db.dialect.driver == "asyncpg" and not config.db.dialect._is_v231plus):
             super().test_long_convention_name(type_, metadata, connection, None)
 
-
-class QuotedNameArgumentTest(_QuotedNameArgumentTest):
-    def quote_fixtures(fn):
-        return testing.combinations(
-            ("quote ' one",),
-            ('quote " two', testing.requires.symbol_names_w_double_quote),
-        )(fn)
-
     @quote_fixtures
     def test_get_indexes(self, name):
         # could not decorrelate subquery
@@ -482,6 +475,21 @@ class NumericTest(_NumericTest):
         # psycopg.errors.InvalidParameterValue: unsupported binary operator: <decimal> + <float>
         if config.db.dialect.driver != "psycopg":
             super().test_numeric_null_as_float(do_numeric_test)
+
+
+class PingTest(_PingTest):
+    @skip("cockroachdb")
+    def test_do_ping(self):
+        # test not compatible with provision.py change for CRDB 24.x
+        pass
+
+
+class QuotedNameArgumentTest(_QuotedNameArgumentTest):
+    def quote_fixtures(fn):
+        return testing.combinations(
+            ("quote ' one",),
+            ('quote " two', testing.requires.symbol_names_w_double_quote),
+        )(fn)
 
 
 class TrueDivTest(_TrueDivTest):
