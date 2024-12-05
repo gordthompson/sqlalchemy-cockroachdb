@@ -46,6 +46,7 @@ jobs:
         ]
         db-alias: [
           "psycopg2",
+          "asyncpg",
           "psycopg"
         ]
     env:
