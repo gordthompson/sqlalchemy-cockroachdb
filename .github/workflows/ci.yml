@@ -46,7 +46,7 @@ jobs:
         ]
         db-alias: [
           "psycopg2",
-          "asyncpg",
+#          "asyncpg",  # pending SQLA fix to not force READ COMMITTED
           "psycopg"
         ]
     env:
@@ -84,4 +84,3 @@ jobs:
         run: pip install --user tox==${TOX_VERSION}
       - name: Lint
         run: ${HOME}/.local/bin/tox -e lint
-
