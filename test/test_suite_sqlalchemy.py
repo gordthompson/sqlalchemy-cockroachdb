@@ -16,7 +16,6 @@ from sqlalchemy.testing.suite import (
     LongNameBlowoutTest as _LongNameBlowoutTest,
 )
 from sqlalchemy.testing.suite import NumericTest as _NumericTest
-from sqlalchemy.testing.suite import PingTest as _PingTest
 from sqlalchemy.testing.suite import (
     QuotedNameArgumentTest as _QuotedNameArgumentTest,
 )
@@ -420,10 +419,10 @@ class InsertBehaviorTest(_InsertBehaviorTest):
 
 
 class IntegerTest(_IntegerTest):
-    @skip("cockroachdb")
-    def test_huge_int(self):
-        # fixture not compatible with provision.py change for CRDB 24.x
-        pass
+    @_IntegerTest._huge_ints()
+    def test_huge_int(self, integer_round_trip, intvalue):
+        if config.db.dialect.driver != "asyncpg":
+            super().test_huge_int(integer_round_trip, intvalue)
 
 
 class IsolationLevelTest(_IsolationLevelTest):
@@ -469,13 +468,6 @@ class NumericTest(_NumericTest):
         # psycopg.errors.InvalidParameterValue: unsupported binary operator: <decimal> + <float>
         if config.db.dialect.driver != "psycopg":
             super().test_numeric_null_as_float(do_numeric_test)
-
-
-class PingTest(_PingTest):
-    @skip("cockroachdb")
-    def test_do_ping(self):
-        # test not compatible with provision.py change for CRDB 24.x
-        pass
 
 
 class QuotedNameArgumentTest(_QuotedNameArgumentTest):
