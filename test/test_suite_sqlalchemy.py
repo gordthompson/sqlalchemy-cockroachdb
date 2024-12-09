@@ -431,10 +431,6 @@ class IsolationLevelTest(_IsolationLevelTest):
         # IndexError: list index out of range
         pass
 
-    def test_non_default_isolation_level(self):
-        if config.db.dialect.driver != "asyncpg":
-            super().test_non_default_isolation_level()
-
 
 class LongNameBlowoutTest(_LongNameBlowoutTest):
     @testing.combinations(
