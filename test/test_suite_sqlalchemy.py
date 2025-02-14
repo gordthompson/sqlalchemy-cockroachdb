@@ -34,7 +34,7 @@ class BizarroCharacterFKResolutionTest(_BizarroCharacterFKResolutionTest):
         argnames="tablename",
     )
     def test_fk_ref(self, connection, metadata, use_composite, tablename, columnname):
-        if not (config.db.dialect.driver == "asyncpg" and not config.db.dialect._is_v231plus):
+        if not (config.db.dialect.driver == "psycopg" and config.db.dialect._is_v251plus):
             super().test_fk_ref(connection, metadata, use_composite, tablename, columnname)
 
 
