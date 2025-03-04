@@ -43,7 +43,7 @@ jobs:
           "cockroach:latest-v24.1",
           "cockroach:latest-v24.2",
           "cockroach:latest-v24.3",
-          "cockroach-unstable:v25.1.0-rc.1"
+          "cockroach:latest-v25.1"
         ]
         db-alias: [
           "psycopg2",
@@ -53,7 +53,7 @@ jobs:
         # TODO: remove when 25.1 release includes fix for
         #       https://github.com/cockroachdb/cockroach/issues/141576
         exclude:
-          - crdb-version: "cockroach-unstable:v25.1.0-rc.1"
+          - crdb-version: "cockroach:latest-v25.1"
             db-alias: "psycopg"
     env:
       TOXENV: py39
