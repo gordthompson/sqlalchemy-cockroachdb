@@ -1,19 +1,15 @@
+import re
+
 from sqlalchemy import exc
 from sqlalchemy.dialects.postgresql.base import PGDDLCompiler
 from collections.abc import Sequence
 from typing import Any, cast
 
-from sqlalchemy import ColumnElement, exc
+from sqlalchemy import ColumnElement
 from sqlalchemy.ext.compiler import compiles  # type: ignore[import-untyped]
 from sqlalchemy.schema import CreateIndex, CreateTable, Index, Table
 from sqlalchemy.sql import coercions, expression, roles
 from sqlalchemy.sql.compiler import DDLCompiler  # type: ignore[import-untyped]
-from sqlalchemy_cockroachdb.base import (  # type: ignore[import-untyped]
-    CockroachDBDialect,
-)
-from sqlalchemy_cockroachdb.ddl_compiler import (  # type: ignore[import-untyped]
-    CockroachDDLCompiler,
-)
 
 
 class CockroachDDLCompiler(PGDDLCompiler):
@@ -70,7 +66,7 @@ def visit_create_index(element: Any, compiler: CockroachDDLCompiler, **kw: Any) 
     was_created = index.info.get("_cockroachdb_index_created_by_create_table", False)
     assert was_created
 
-    return "SELECT 'No-op: in cockroachdb we put index creation DDL inside the corresponding CREATE TABLE for improved performance.'"
+    return "SELECT 'No-op: in cockroachdb we put index creation DDL inside the corresponding CREATE TABLE for improved performance.'"  # noqa
 
 
 # Copy+paste of private function DDLCompiler._prepared_index_name
@@ -122,7 +118,7 @@ def _codegen_index(
     if index.name is None:
         raise exc.CompileError("CREATE INDEX requires that the index have a name")
 
-    text += "INDEX %s " % _prepared_index_name(
+    text += "\tINDEX %s " % _prepared_index_name(
         index, compiler, include_schema=include_schema
     )
 
