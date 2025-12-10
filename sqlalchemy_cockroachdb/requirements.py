@@ -196,6 +196,10 @@ class Requirements(SuiteRequirementsSQLA, SuiteRequirementsAlembic):
     def autocommit(self):
         return exclusions.open()
 
+    @property
+    def reflect_table_options(self):
+        return exclusions.open()
+
     # -----------------------------------------------
     # non-default requirements for Alembic test suite
     # -----------------------------------------------

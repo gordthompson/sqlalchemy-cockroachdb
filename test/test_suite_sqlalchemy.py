@@ -29,6 +29,8 @@ class ComponentReflectionTest(_ComponentReflectionTest):
         pass
 
     def test_get_multi_indexes(self):
+        # simplified version to avoid attribute mismatches between our dialect
+        #   and SQLA's built-in PostgreSQL dialect
         insp = inspect(config.db)
         result = insp.get_multi_indexes()
         eq_(
@@ -212,6 +214,16 @@ class ComponentReflectionTest(_ComponentReflectionTest):
             super().test_metadata(connection, use_schema, views, [])
 
     @skip("cockroachdb")
+    def test_multi_get_table_options(self):
+        # we have extra values for geography_columns and geometry_columns
+        pass
+
+    @skip("cockroachdb")
+    def test_multi_get_table_options_tables(self):
+        # we have extra values for geography_columns and geometry_columns
+        pass
+
+    @skip("cockroachdb")
     def test_not_existing_table(self):
         # TODO: Why "AssertionError: Callable did not raise an exception"?
         pass
@@ -268,14 +280,24 @@ class LongNameBlowoutTest(_LongNameBlowoutTest):
 
 
 class NumericTest(_NumericTest):
+    def test_float_as_decimal(self, do_numeric_test):
+        # unsupported binary operator: <decimal> + <float>
+        if config.db.dialect.driver not in ["asyncpg", "psycopg"]:
+            super().test_float_as_decimal(do_numeric_test)
+
+    def test_float_custom_scale(self, do_numeric_test):
+        # unsupported binary operator: <decimal> + <float>
+        if config.db.dialect.driver not in ["asyncpg", "psycopg"]:
+            super().test_float_custom_scale(do_numeric_test)
+
     def test_numeric_as_float(self, do_numeric_test):
-        # psycopg.errors.InvalidParameterValue: unsupported binary operator: <decimal> + <float>
-        if config.db.dialect.driver != "psycopg":
+        # unsupported binary operator: <decimal> + <float>
+        if config.db.dialect.driver not in ["asyncpg", "psycopg"]:
             super().test_numeric_as_float(do_numeric_test)
 
     def test_numeric_null_as_float(self, do_numeric_test):
-        # psycopg.errors.InvalidParameterValue: unsupported binary operator: <decimal> + <float>
-        if config.db.dialect.driver != "psycopg":
+        # unsupported binary operator: <decimal> + <float>
+        if config.db.dialect.driver not in ["asyncpg", "psycopg"]:
             super().test_numeric_null_as_float(do_numeric_test)
 
 
