@@ -1,18 +1,16 @@
 ## psycopg support
 
-Support for psycopg version 3 (sometimes referred to as "psycopg3") requires the 
-following *minimum* CockroachDB versions: 22.2.6 or 23.1.0
-
 ### sync operation
 
 The connection URL is of the form:
+
 ```
 cockroachdb+psycopg://root@localhost:26257/defaultdb
 ```
 
 To create the engine
 
-```
+```python
 from sqlalchemy import create_engine
 engine = create_engine('cockroachdb+psycopg://root@localhost:26257/defaultdb')
 ```
@@ -21,7 +19,7 @@ engine = create_engine('cockroachdb+psycopg://root@localhost:26257/defaultdb')
 
 The "classic" approach
 
-```
+```python
 from sqlalchemy.ext.asyncio import create_async_engine
 engine = create_async_engine('cockroachdb+psycopg://root@localhost:26257/defaultdb')
 ```
