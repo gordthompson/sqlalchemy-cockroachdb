@@ -89,7 +89,7 @@ typing-extensions==4.15.0
     # via
     #   cryptography
     #   virtualenv
-urllib3==2.6.1
+urllib3==2.6.2
     # via
     #   requests
     #   twine
