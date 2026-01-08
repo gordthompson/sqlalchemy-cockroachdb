@@ -97,11 +97,11 @@ typing-extensions==4.15.0
     #   cryptography
     #   tox
     #   virtualenv
-urllib3==2.6.2
+urllib3==2.6.3
     # via
     #   requests
     #   twine
-virtualenv==20.35.4
+virtualenv==20.36.0
     # via tox
 zipp==3.23.0
     # via importlib-metadata
