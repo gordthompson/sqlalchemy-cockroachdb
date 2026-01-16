@@ -1,4 +1,4 @@
-alembic==1.17.2
+alembic==1.18.1
     # via -r test-requirements.in
 async-timeout==5.0.1
     # via asyncpg
@@ -36,7 +36,7 @@ sqlalchemy==2.0.45
     # via
     #   -r test-requirements.in
     #   alembic
-tomli==2.3.0
+tomli==2.4.0
     # via
     #   alembic
     #   pytest

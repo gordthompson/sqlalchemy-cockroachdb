@@ -45,7 +45,7 @@ jobs:
           "cockroach:latest-v25.2",
           "cockroach:latest-v25.3",
           "cockroach:latest-v25.4",
-          "cockroach-unstable:v26.1.0-beta.2"
+          "cockroach-unstable:v26.1.0-beta.3"
         ]
         db-alias: [
           "psycopg2",
@@ -54,7 +54,7 @@ jobs:
         ]
     env:
       TOXENV: py310
-      TOX_VERSION: 4.33.0
+      TOX_VERSION: 4.34.1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -77,7 +77,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TOXENV: py310
-      TOX_VERSION: 4.33.0
+      TOX_VERSION: 4.34.1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

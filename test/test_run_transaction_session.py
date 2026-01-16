@@ -58,7 +58,7 @@ class BaseRunTransactionTest(fixtures.DeclarativeMappedTest):
                     # If this is the first iteration, wait for the other txn to also read.
                     with cv:
                         wait_count[0] -= 1
-                        cv.notifyAll()
+                        cv.notify_all()
                         while wait_count[0] > 0:
                             cv.wait()
 
