@@ -2,7 +2,6 @@ import collections
 import re
 import threading
 from sqlalchemy import text
-from sqlalchemy import util
 from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import INET
@@ -10,7 +9,6 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.util import warn
-import sqlalchemy.sql as sql
 
 import sqlalchemy.types as sqltypes
 

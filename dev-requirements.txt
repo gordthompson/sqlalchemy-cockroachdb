@@ -61,7 +61,7 @@ platformdirs==4.5.1
     #   virtualenv
 pluggy==1.6.0
     # via tox
-pycparser==2.23
+pycparser==3.0
     # via cffi
 pygments==2.19.2
     # via
