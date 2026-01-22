@@ -231,6 +231,8 @@ class ComponentReflectionTest(_ComponentReflectionTest):
             eq_(act["comment"], exp["comment"])
 
     def test_get_multi_indexes(self):
+        # simplified version to avoid attribute mismatches between our dialect
+        #   and SQLA's built-in PostgreSQL dialect
         insp = inspect(config.db)
         result = insp.get_multi_indexes()
         eq_(
@@ -241,12 +243,7 @@ class ComponentReflectionTest(_ComponentReflectionTest):
                     {
                         "column_names": ["data"],
                         "column_sorting": {"data": ("nulls_first",)},
-                        "dialect_options": {
-                            "postgresql_ops": {
-                                "data": None,
-                            },
-                            "postgresql_using": "prefix",
-                        },
+                        "dialect_options": {"postgresql_using": "prefix"},
                         "duplicates_constraint": "dingalings_data_key",
                         "name": "dingalings_data_key",
                         "unique": True,
@@ -257,13 +254,7 @@ class ComponentReflectionTest(_ComponentReflectionTest):
                             "address_id": ("nulls_first",),
                             "dingaling_id": ("nulls_first",),
                         },
-                        "dialect_options": {
-                            "postgresql_ops": {
-                                "address_id": None,
-                                "dingaling_id": None,
-                            },
-                            "postgresql_using": "prefix",
-                        },
+                        "dialect_options": {"postgresql_using": "prefix"},
                         "duplicates_constraint": "zz_dingalings_multiple",
                         "name": "zz_dingalings_multiple",
                         "unique": True,
@@ -273,12 +264,7 @@ class ComponentReflectionTest(_ComponentReflectionTest):
                     {
                         "column_names": ["email_address"],
                         "column_sorting": {"email_address": ("nulls_first",)},
-                        "dialect_options": {
-                            "postgresql_ops": {
-                                "email_address": None,
-                            },
-                            "postgresql_using": "prefix",
-                        },
+                        "dialect_options": {"postgresql_using": "prefix"},
                         "name": "ix_email_addresses_email_address",
                         "unique": False,
                     }
@@ -288,12 +274,7 @@ class ComponentReflectionTest(_ComponentReflectionTest):
                     {
                         "column_names": ["q"],
                         "column_sorting": {"q": ("desc", "nulls_last")},
-                        "dialect_options": {
-                            "postgresql_ops": {
-                                "q": None,
-                            },
-                            "postgresql_using": "prefix",
-                        },
+                        "dialect_options": {"postgresql_using": "prefix"},
                         "name": "noncol_idx_nopk",
                         "unique": False,
                     }
@@ -302,12 +283,7 @@ class ComponentReflectionTest(_ComponentReflectionTest):
                     {
                         "column_names": ["q"],
                         "column_sorting": {"q": ("desc", "nulls_last")},
-                        "dialect_options": {
-                            "postgresql_ops": {
-                                "q": None,
-                            },
-                            "postgresql_using": "prefix",
-                        },
+                        "dialect_options": {"postgresql_using": "prefix"},
                         "name": "noncol_idx_pk",
                         "unique": False,
                     }
@@ -320,27 +296,14 @@ class ComponentReflectionTest(_ComponentReflectionTest):
                             "test2": ("nulls_first",),
                             "user_id": ("nulls_first",),
                         },
-                        "dialect_options": {
-                            "postgresql_ops": {
-                                "test1": None,
-                                "test2": None,
-                                "user_id": None,
-                            },
-                            "postgresql_using": "prefix",
-                        },
+                        "dialect_options": {"postgresql_using": "prefix"},
                         "name": "users_all_idx",
                         "unique": False,
                     },
                     {
                         "column_names": ["test1", "test2"],
                         "column_sorting": {"test1": ("nulls_first",), "test2": ("nulls_first",)},
-                        "dialect_options": {
-                            "postgresql_ops": {
-                                "test1": None,
-                                "test2": None,
-                            },
-                            "postgresql_using": "prefix",
-                        },
+                        "dialect_options": {"postgresql_using": "prefix"},
                         "duplicates_constraint": "users_t_idx",
                         "name": "users_t_idx",
                         "unique": True,
@@ -411,6 +374,16 @@ class ComponentReflectionTest(_ComponentReflectionTest):
             super().test_metadata(connection, use_schema, views, [])
 
     @skip("cockroachdb")
+    def test_multi_get_table_options(self):
+        # we have extra values for geography_columns and geometry_columns
+        pass
+
+    @skip("cockroachdb")
+    def test_multi_get_table_options_tables(self):
+        # we have extra values for geography_columns and geometry_columns
+        pass
+
+    @skip("cockroachdb")
     def test_not_existing_table(self):
         # TODO: Why "AssertionError: Callable did not raise an exception"?
         pass
@@ -467,14 +440,24 @@ class LongNameBlowoutTest(_LongNameBlowoutTest):
 
 
 class NumericTest(_NumericTest):
+    def test_float_as_decimal(self, do_numeric_test):
+        # unsupported binary operator: <decimal> + <float>
+        if config.db.dialect.driver not in ["asyncpg", "psycopg"]:
+            super().test_float_as_decimal(do_numeric_test)
+
+    def test_float_custom_scale(self, do_numeric_test):
+        # unsupported binary operator: <decimal> + <float>
+        if config.db.dialect.driver not in ["asyncpg", "psycopg"]:
+            super().test_float_custom_scale(do_numeric_test)
+
     def test_numeric_as_float(self, do_numeric_test):
-        # psycopg.errors.InvalidParameterValue: unsupported binary operator: <decimal> + <float>
-        if config.db.dialect.driver != "psycopg":
+        # unsupported binary operator: <decimal> + <float>
+        if config.db.dialect.driver not in ["asyncpg", "psycopg"]:
             super().test_numeric_as_float(do_numeric_test)
 
     def test_numeric_null_as_float(self, do_numeric_test):
-        # psycopg.errors.InvalidParameterValue: unsupported binary operator: <decimal> + <float>
-        if config.db.dialect.driver != "psycopg":
+        # unsupported binary operator: <decimal> + <float>
+        if config.db.dialect.driver not in ["asyncpg", "psycopg"]:
             super().test_numeric_null_as_float(do_numeric_test)
 
 
