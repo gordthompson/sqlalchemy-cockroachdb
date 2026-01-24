@@ -50,7 +50,7 @@ more-itertools==10.8.0
     #   jaraco-functools
 nh3==0.3.2
     # via readme-renderer
-packaging==25.0
+packaging==26.0
     # via
     #   pyproject-api
     #   tox
@@ -80,7 +80,7 @@ requests-toolbelt==1.0.0
     # via twine
 rfc3986==2.0.0
     # via twine
-rich==14.2.0
+rich==14.3.0
     # via twine
 secretstorage==3.5.0
     # via keyring
