@@ -4,6 +4,7 @@ Unreleased
 - Fix reflection of CHAR columns (#275)
 - Fix reflection of TIMESTAMPTZ columns (#276), thanks to @nvachhar
 - Fix reflection of JSONB columns (#277)
+- Fix compatibility issue with Alembic 1.18
 - Update minimum Python version to 3.10
 
 
