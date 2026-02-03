@@ -2,11 +2,13 @@ import collections
 import re
 import threading
 from sqlalchemy import text
+from sqlalchemy import util
 from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import INET
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.engine.reflection import ReflectionDefaults
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.util import warn
 
@@ -362,6 +364,121 @@ class CockroachDBDialect(PGDialect):
             ]:
                 result.pop(k, None)
         return result
+
+    @util.memoized_property
+    def _fk_regex_pattern(self):
+        # optionally quoted token
+        qtoken = r'(?:"[^"]+"|[\w]+?)'
+
+        # https://www.postgresql.org/docs/current/static/sql-createtable.html
+        return re.compile(
+            r"FOREIGN KEY \((.*?)\) "
+            rf"REFERENCES (?:({qtoken})\.)?({qtoken})\(((?:{qtoken}(?: *, *)?)+)\)"  # noqa: E501
+            r"[\s]?(MATCH (FULL|PARTIAL|SIMPLE)+)?"
+            r"[\s]?(ON DELETE "
+            r"(CASCADE|RESTRICT|NO ACTION|SET NULL|SET DEFAULT)+)?"
+            r"[\s]?(ON UPDATE "
+            r"(CASCADE|RESTRICT|NO ACTION|SET NULL|SET DEFAULT)+)?"
+            r"[\s]?(DEFERRABLE|NOT DEFERRABLE)?"
+            r"[\s]?(INITIALLY (DEFERRED|IMMEDIATE)+)?"
+        )
+
+    def get_multi_foreign_keys(
+        self,
+        connection,
+        schema,
+        filter_names,
+        scope,
+        kind,
+        postgresql_ignore_search_path=False,
+        **kw,
+    ):
+        preparer = self.identifier_preparer
+
+        has_filter_names, params = self._prepare_filter_names(filter_names)
+        query = self._foreing_key_query(schema, has_filter_names, scope, kind)
+        result = connection.execute(query, params)
+
+        FK_REGEX = self._fk_regex_pattern
+
+        fkeys = collections.defaultdict(list)
+        default = ReflectionDefaults.foreign_keys
+        for table_name, conname, condef, conschema, comment in result:
+            # ensure that each table has an entry, even if it has
+            # no foreign keys
+            if conname is None:
+                fkeys[(schema, table_name)] = default()
+                continue
+            table_fks = fkeys[(schema, table_name)]
+            m = re.search(FK_REGEX, condef).groups()
+
+            (
+                constrained_columns,
+                referred_schema,
+                referred_table,
+                referred_columns,
+                _,
+                match,
+                _,
+                ondelete,
+                _,
+                onupdate,
+                deferrable,
+                _,
+                initially,
+            ) = m
+
+            if deferrable is not None:
+                deferrable = True if deferrable == "DEFERRABLE" else False
+            constrained_columns = [
+                preparer._unquote_identifier(x)
+                for x in re.split(r"\s*,\s*", constrained_columns)
+            ]
+
+            if postgresql_ignore_search_path:
+                # when ignoring search path, we use the actual schema
+                # provided it isn't the "default" schema
+                if conschema != self.default_schema_name:
+                    referred_schema = conschema
+                else:
+                    referred_schema = schema
+            elif referred_schema:
+                # referred_schema is the schema that we regexp'ed from
+                # pg_get_constraintdef().  If the schema is in the search
+                # path, pg_get_constraintdef() will give us None.
+                referred_schema = preparer._unquote_identifier(referred_schema)
+            elif schema is not None and schema == conschema:
+                # If the actual schema matches the schema of the table
+                # we're reflecting, then we will use that.
+                referred_schema = schema
+
+            referred_table = preparer._unquote_identifier(referred_table)
+            referred_columns = [
+                preparer._unquote_identifier(x)
+                for x in re.split(r"\s*,\s", referred_columns)
+            ]
+            options = {
+                k: v
+                for k, v in [
+                    ("onupdate", onupdate),
+                    ("ondelete", ondelete),
+                    ("initially", initially),
+                    ("deferrable", deferrable),
+                    ("match", match),
+                ]
+                if v is not None and v != "NO ACTION"
+            }
+            fkey_d = {
+                "name": conname,
+                "constrained_columns": constrained_columns,
+                "referred_schema": referred_schema,
+                "referred_table": referred_table,
+                "referred_columns": referred_columns,
+                "options": options,
+                "comment": comment,
+            }
+            table_fks.append(fkey_d)
+        return fkeys.items()
 
     def get_pk_constraint(self, conn, table_name, schema=None, **kw):
         if self._is_v21plus:
