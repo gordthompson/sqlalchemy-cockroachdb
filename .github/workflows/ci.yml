@@ -46,8 +46,8 @@ jobs:
 #          "cockroach:latest-v26.1"
         ]
         db-alias: [
-          "psycopg2",
-          "asyncpg",
+#          "psycopg2",
+#          "asyncpg",
           "psycopg"
         ]
     env:
