@@ -25,7 +25,7 @@ pip install "sqlalchemy[asyncio]"
 
 A database driver (DBAPI layer) is required to work with this dialect.
 
-#### <u>psycopg2 (sync only)</u>
+#### psycopg2 (sync only)
 
 For psycopg2 support you must install either:
 
@@ -38,12 +38,12 @@ For psycopg2 support you must install either:
 (The binary package is a practical choice for development and testing but in
 production it is advised to use the package built from sources.)
 
-#### <u>asyncpg (async only)</u>
+#### asyncpg (async only)
 
 For asyncpg support you must install [asyncpg](https://pypi.org/project/asyncpg/). For more details on working with asyncpg, see 
 [README.asyncpg.md](README.asyncpg.md).
 
-#### <u>psycopg (sync or async)</u>
+#### psycopg (sync or async)
 
 For psycopg version 3 support, you'll need to install [psycopg](https://pypi.org/project/psycopg/). As with psycopg2, psycopg can 
 be installed as binary for development and testing purposes.
@@ -61,28 +61,28 @@ For more details on working with psycopg, see
 Use a `cockroachdb` connection string when creating the `Engine`. For example,
 to connect to an insecure, local CockroachDB cluster using psycopg2:
 
-```
+```python
 from sqlalchemy import create_engine
 engine = create_engine('cockroachdb://root@localhost:26257/defaultdb?sslmode=disable')
 ```
 
 or
 
-```
+```python
 from sqlalchemy import create_engine
 engine = create_engine('cockroachdb+psycopg2://root@localhost:26257/defaultdb?sslmode=disable')
 ```
 
 To connect using asyncpg:
 
-```
+```python
 from sqlalchemy.ext.asyncio import create_async_engine
 engine = create_async_engine('cockroachdb+asyncpg://root@localhost:26257/defaultdb')
 ```
 
 To connect using psycopg for sync operation:
 
-```
+```python
 from sqlalchemy import create_engine
 engine = create_engine('cockroachdb+psycopg://root@localhost:26257/defaultdb')
 ```
