@@ -1,10 +1,31 @@
 # CockroachDB dialect for SQLAlchemy
 
-## Prerequisites
+## Setup
+
+### Version of SQLAlchemy to be used
+
+This version of the dialect requires SQLAlchemy 2.1.x. To work with
+SQLAlchemy 2.0.x you'll need to install the corresponding version of this
+dialect.
+
+```
+pip install "sqlalchemy-cockroachdb~=2.0"
+```
+
+### Using async
+
+If you will be running async code you'll need to install the additional
+support components for SQLAlchemy:
+
+```
+pip install "sqlalchemy[asyncio]"
+```
+
+### Database driver
 
 A database driver (DBAPI layer) is required to work with this dialect.
 
-### psycopg2
+#### <u>psycopg2 (sync only)</u>
 
 For psycopg2 support you must install either:
 
@@ -17,44 +38,25 @@ For psycopg2 support you must install either:
 (The binary package is a practical choice for development and testing but in
 production it is advised to use the package built from sources.)
 
-### asyncpg
+#### <u>asyncpg (async only)</u>
 
-For asyncpg support you must install
+For asyncpg support you must install [asyncpg](https://pypi.org/project/asyncpg/). For more details on working with asyncpg, see 
+[README.asyncpg.md](README.asyncpg.md).
 
-* [asyncpg](https://pypi.org/project/asyncpg/)
+#### <u>psycopg (sync or async)</u>
 
-For more details on working with asyncpg, see 
-[README.asyncpg.md](README.asyncpg.md)
-
-### psycopg
-
-For psycopg version 3 support, you'll need to install
-
-* [psycopg](https://pypi.org/project/psycopg/)
-
-As with psycopg2, psycopg can be installed as binary for development and testing purposes.
+For psycopg version 3 support, you'll need to install [psycopg](https://pypi.org/project/psycopg/). As with psycopg2, psycopg can 
+be installed as binary for development and testing purposes.
 (Installing as binary avoids the need for the libpq-dev package to be installed first.)
 
-`pip install psycopg[binary]`
+```
+pip install "psycopg[binary]"
+```
 
 For more details on working with psycopg, see 
 [README.psycopg.md](README.psycopg.md)
  
-## Install and usage
-
-Use `pip` to install the latest release of this dialect.
-
-```
-pip install sqlalchemy-cockroachdb
-```
-
-NOTE: This version of the dialect requires SQLAlchemy 2.0.x. To work with
-earlier versions of SQLAlchemy you'll need to install an earlier version of this
-dialect.
-
-```
-pip install "sqlalchemy-cockroachdb<2.0"
-```
+## Usage
 
 Use a `cockroachdb` connection string when creating the `Engine`. For example,
 to connect to an insecure, local CockroachDB cluster using psycopg2:
