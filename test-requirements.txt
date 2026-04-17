@@ -32,7 +32,7 @@ pygments==2.19.2
     # via pytest
 pytest==9.0.2
     # via -r test-requirements.in
-sqlalchemy[asyncio]==2.1.0b1
+sqlalchemy[asyncio]==2.1.0b2
     # via
     #   -r test-requirements.in
     #   alembic
