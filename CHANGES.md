@@ -1,7 +1,9 @@
 # Version 2.0.5
 Unreleased
 
-- Fix get_columns() to include identity column info (#297)
+- Re-work get_multi_columns() to 
+  - include identity column info (#297)
+  - avoid parse error when reflecting ENUMs (#303)
 
 # Version 2.0.4
 April 23, 2026

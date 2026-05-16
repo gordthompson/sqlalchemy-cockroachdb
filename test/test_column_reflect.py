@@ -8,6 +8,7 @@ from sqlalchemy import (
     inspect,
     BigInteger,
     Identity,
+    Computed,
 )
 from sqlalchemy.testing import fixtures, eq_
 
@@ -32,6 +33,23 @@ with_identity = Table(
     Column("id", BigInteger, Identity(), primary_key=True),
     Column("txt", String),
 )
+
+with_identity_always = Table(
+    "with_identity_always",
+    meta,
+    Column("id", BigInteger, Identity(always=True), primary_key=True),
+    Column("txt", String),
+)
+
+with_computed_stored = Table(
+    "with_computed_stored",
+    meta,
+    Column("id", Integer, primary_key=True),
+    Column("id2", Integer, Computed("id + 1", persisted=True)),
+)
+
+# Note: CockroachDB computed columns do not support 'virtual' persistence;
+#       set the 'persisted' flag to None or True for CockroachDB support.
 
 
 class ReflectHiddenColumnsTest(fixtures.TestBase):
@@ -144,6 +162,64 @@ class ReflectHiddenColumnsTest(fixtures.TestBase):
                     "name": "txt",
                     "nullable": True,
                     "type": "VARCHAR",
+                },
+            ],
+        )
+        eq_(
+            self._get_col_info("with_identity_always"),
+            [
+                {
+                    "autoincrement": True,
+                    "comment": None,
+                    "default": "nextval('public.with_identity_always_id_seq'::REGCLASS)",
+                    "identity": {
+                        "always": True,
+                        "cache": 1,
+                        "cycle": False,
+                        "increment": 1,
+                        "maxvalue": 9223372036854775807,
+                        "minvalue": 1,
+                        "start": 1,
+                    },
+                    "is_hidden": False,
+                    "name": "id",
+                    "nullable": False,
+                    "type": "INTEGER",
+                },
+                {
+                    "autoincrement": False,
+                    "comment": None,
+                    "default": None,
+                    "is_hidden": False,
+                    "name": "txt",
+                    "nullable": True,
+                    "type": "VARCHAR",
+                },
+            ],
+        )
+
+    def test_reflect_computed_stored(self):
+        eq_(
+            self._get_col_info("with_computed_stored"),
+            [
+                {
+                    "autoincrement": True,
+                    "comment": None,
+                    "default": "unique_rowid()",
+                    "is_hidden": False,
+                    "name": "id",
+                    "nullable": False,
+                    "type": "INTEGER",
+                },
+                {
+                    "autoincrement": False,
+                    "comment": None,
+                    "computed": {"persisted": True, "sqltext": "id + 1"},
+                    "default": None,
+                    "is_hidden": False,
+                    "name": "id2",
+                    "nullable": True,
+                    "type": "INTEGER",
                 },
             ],
         )
