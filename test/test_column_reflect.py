@@ -21,6 +21,14 @@ with_pk = Table(
     Column("txt", String),
 )
 
+with_pk_other_schema = Table(
+    "with_pk_other_schema",
+    meta,
+    Column("id", Integer, primary_key=True),
+    Column("txt", String),
+    schema="test_schema",
+)
+
 without_pk = Table(
     "without_pk",
     meta,
@@ -165,6 +173,7 @@ class ReflectHiddenColumnsTest(fixtures.TestBase):
                 },
             ],
         )
+
         eq_(
             self._get_col_info("with_identity_always"),
             [
@@ -223,3 +232,30 @@ class ReflectHiddenColumnsTest(fixtures.TestBase):
                 },
             ],
         )
+
+    # def test_reflect_other_schema(self):
+    #     # TODO: uncomment when resolved
+    #     # verify https://github.com/cockroachdb/cockroach/issues/170049
+    #     eq_(
+    #         self._get_col_info("with_pk_other_schema"),
+    #         [
+    #             {
+    #                 "autoincrement": True,
+    #                 "comment": None,
+    #                 "default": "unique_rowid()",
+    #                 "is_hidden": False,
+    #                 "name": "id",
+    #                 "nullable": False,
+    #                 "type": "INTEGER",
+    #             },
+    #             {
+    #                 "autoincrement": False,
+    #                 "comment": None,
+    #                 "default": None,
+    #                 "is_hidden": False,
+    #                 "name": "txt",
+    #                 "nullable": True,
+    #                 "type": "VARCHAR",
+    #             },
+    #         ],
+    #     )

@@ -15,63 +15,10 @@ from sqlalchemy import TEXT
 from sqlalchemy import VARCHAR
 from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.dialects.postgresql import BYTEA
-from sqlalchemy.dialects.postgresql import INET
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.compiler import compiles
-
-import sqlalchemy.types as sqltypes
 
 from .stmt_compiler import CockroachCompiler, CockroachIdentifierPreparer
 from .ddl_compiler import CockroachDDLCompiler
-
-# Map type names (as returned by information_schema) to sqlalchemy type
-# objects.
-#
-# TODO(bdarnell): test more of these. The stock test suite only covers
-# a few basic ones.
-_type_map = {
-    "bool": sqltypes.BOOLEAN,  # introspection returns "BOOL" not boolean
-    "boolean": sqltypes.BOOLEAN,
-    "bigint": sqltypes.INT,
-    "int": sqltypes.INT,
-    "int2": sqltypes.INT,
-    "int4": sqltypes.INT,
-    "int64": sqltypes.INT,
-    "int8": sqltypes.INT,
-    "integer": sqltypes.INT,
-    "smallint": sqltypes.INT,
-    "double precision": sqltypes.FLOAT,
-    "float": sqltypes.FLOAT,
-    "float4": sqltypes.FLOAT,
-    "float8": sqltypes.FLOAT,
-    "real": sqltypes.FLOAT,
-    "dec": sqltypes.DECIMAL,
-    "decimal": sqltypes.DECIMAL,
-    "numeric": sqltypes.DECIMAL,
-    "date": sqltypes.DATE,
-    "time": sqltypes.Time,
-    "time without time zone": sqltypes.Time,
-    "timestamp": sqltypes.TIMESTAMP,
-    "timestamptz": sqltypes.TIMESTAMP(timezone=True),
-    "timestamp with time zone": sqltypes.TIMESTAMP(timezone=True),
-    "timestamp without time zone": sqltypes.TIMESTAMP,
-    "interval": sqltypes.Interval,
-    "char": sqltypes.CHAR,
-    "char varying": sqltypes.VARCHAR,
-    "character": sqltypes.CHAR,
-    "character varying": sqltypes.VARCHAR,
-    "string": sqltypes.VARCHAR,
-    "text": sqltypes.VARCHAR,
-    "varchar": sqltypes.VARCHAR,
-    "blob": sqltypes.BLOB,
-    "bytea": sqltypes.BLOB,
-    "bytes": sqltypes.BLOB,
-    "json": sqltypes.JSON,
-    "jsonb": JSONB,
-    "uuid": UUID,
-    "inet": INET,
-}
 
 
 class _SavepointState(threading.local):
@@ -213,7 +160,7 @@ class CockroachDBDialect(PGDialect):
                         .all()
                     )
                     is_hidden = {x["column_name"]: x["is_hidden"] for x in table_columns}
-                    for col in columns:
+                    for col in columns[:]:
                         if is_hidden[col["name"]] and not _include_hidden:
                             columns.remove(col)
                         else:
@@ -221,19 +168,19 @@ class CockroachDBDialect(PGDialect):
                             if col["default"] == "unique_rowid()":
                                 col["autoincrement"] = True
                             if isinstance(col["type"], BIGINT):
-                                col["type"] = INTEGER
+                                col["type"] = INTEGER()
                             elif isinstance(col["type"], ARRAY) and isinstance(
                                 col["type"].item_type, BIGINT
                             ):
                                 col["type"].item_type = INTEGER()
                             elif isinstance(col["type"], BYTEA):
-                                col["type"] = BLOB
+                                col["type"] = BLOB()
                             elif isinstance(col["type"], ARRAY) and isinstance(
                                 col["type"].item_type, BYTEA
                             ):
                                 col["type"].item_type = BLOB()
                             elif isinstance(col["type"], DOUBLE_PRECISION):
-                                col["type"] = FLOAT
+                                col["type"] = FLOAT()
                             elif isinstance(col["type"], ARRAY) and isinstance(
                                 col["type"].item_type, DOUBLE_PRECISION
                             ):
@@ -247,19 +194,19 @@ class CockroachDBDialect(PGDialect):
                                     col["type"].item_type.precision, col["type"].item_type.scale
                                 )
                             elif isinstance(col["type"], REAL):
-                                col["type"] = FLOAT
+                                col["type"] = FLOAT()
                             elif isinstance(col["type"], ARRAY) and isinstance(
                                 col["type"].item_type, REAL
                             ):
                                 col["type"].item_type = FLOAT()
                             elif isinstance(col["type"], SMALLINT):
-                                col["type"] = INTEGER
+                                col["type"] = INTEGER()
                             elif isinstance(col["type"], ARRAY) and isinstance(
                                 col["type"].item_type, SMALLINT
                             ):
                                 col["type"].item_type = INTEGER()
                             elif isinstance(col["type"], TEXT):
-                                col["type"] = VARCHAR
+                                col["type"] = VARCHAR()
                             elif isinstance(col["type"], ARRAY) and isinstance(
                                 col["type"].item_type, TEXT
                             ):
