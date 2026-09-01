@@ -1,6 +1,8 @@
 # Version 2.1.0
 Unreleased
 
+- Update minimum Python version to 3.11
+
 # Version 2.0.4
 Unreleased
 
@@ -9,7 +11,6 @@ Unreleased
 - Fix reflection of JSONB columns (#277)
 - Fix compatibility issues with Alembic 1.18 (via SQLA 2.0.47)
 - Update minimum Python version to 3.10
-
 
 # Version 2.0.3
 June 10, 2025

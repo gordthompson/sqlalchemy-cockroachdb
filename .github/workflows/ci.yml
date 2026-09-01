@@ -24,17 +24,17 @@ jobs:
     if: ${{ always() }}
     runs-on: ubuntu-latest
     name: Test Results
-    needs: [test-py310]
+    needs: [test-py311]
     steps:
       - run: |
-          result="${{ needs.test-py310.result }}"
+          result="${{ needs.test-py311.result }}"
           if [[ $result == "success" || $result == "skipped" ]]; then
             exit 0
           else
             exit 1
           fi
 
-  test-py310:
+  test-py311:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -51,13 +51,13 @@ jobs:
           "psycopg"
         ]
     env:
-      TOXENV: py310
+      TOXENV: py311
       TOX_VERSION: 4.34.1
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.10'
+          python-version: '3.11'
       - name: Start CockroachDB
         run: |
           docker pull cockroachdb/${{ matrix.crdb-version }}
@@ -74,13 +74,13 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     env:
-      TOXENV: py310
+      TOXENV: py311
       TOX_VERSION: 4.34.1
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.10'
+          python-version: '3.11'
       - name: Install testrunner
         run: pip install --user tox==${TOX_VERSION}
       - name: Lint
