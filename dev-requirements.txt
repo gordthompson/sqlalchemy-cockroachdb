@@ -90,7 +90,7 @@ tox==4.34.1
     # via -r dev-requirements.in
 twine==7.0.0
     # via -r dev-requirements.in
-urllib3==2.7.0
+urllib3==2.8.0
     # via
     #   id
     #   requests
