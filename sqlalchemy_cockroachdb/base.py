@@ -1,68 +1,25 @@
 import collections
-import re
 import threading
-from sqlalchemy import text
+from sqlalchemy import text, Table, MetaData, Column, String, select, and_, tuple_
+from sqlalchemy import ARRAY
+from sqlalchemy import BIGINT
+from sqlalchemy import BLOB
+from sqlalchemy import DECIMAL
+from sqlalchemy import DOUBLE_PRECISION
+from sqlalchemy import FLOAT
+from sqlalchemy import INTEGER
+from sqlalchemy import NUMERIC
+from sqlalchemy import REAL
+from sqlalchemy import SMALLINT
+from sqlalchemy import TEXT
+from sqlalchemy import VARCHAR
 from sqlalchemy.dialects.postgresql.base import PGDialect
-from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.dialects.postgresql import INET
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import BYTEA, pg_catalog
+from sqlalchemy.dialects.postgresql.pg_catalog import pg_namespace
 from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.util import warn
-
-import sqlalchemy.types as sqltypes
 
 from .stmt_compiler import CockroachCompiler, CockroachIdentifierPreparer
 from .ddl_compiler import CockroachDDLCompiler
-
-
-# Map type names (as returned by information_schema) to sqlalchemy type
-# objects.
-#
-# TODO(bdarnell): test more of these. The stock test suite only covers
-# a few basic ones.
-_type_map = {
-    "bool": sqltypes.BOOLEAN,  # introspection returns "BOOL" not boolean
-    "boolean": sqltypes.BOOLEAN,
-    "bigint": sqltypes.INT,
-    "int": sqltypes.INT,
-    "int2": sqltypes.INT,
-    "int4": sqltypes.INT,
-    "int64": sqltypes.INT,
-    "int8": sqltypes.INT,
-    "integer": sqltypes.INT,
-    "smallint": sqltypes.INT,
-    "double precision": sqltypes.FLOAT,
-    "float": sqltypes.FLOAT,
-    "float4": sqltypes.FLOAT,
-    "float8": sqltypes.FLOAT,
-    "real": sqltypes.FLOAT,
-    "dec": sqltypes.DECIMAL,
-    "decimal": sqltypes.DECIMAL,
-    "numeric": sqltypes.DECIMAL,
-    "date": sqltypes.DATE,
-    "time": sqltypes.Time,
-    "time without time zone": sqltypes.Time,
-    "timestamp": sqltypes.TIMESTAMP,
-    "timestamptz": sqltypes.TIMESTAMP(timezone=True),
-    "timestamp with time zone": sqltypes.TIMESTAMP(timezone=True),
-    "timestamp without time zone": sqltypes.TIMESTAMP,
-    "interval": sqltypes.Interval,
-    "char": sqltypes.CHAR,
-    "char varying": sqltypes.VARCHAR,
-    "character": sqltypes.CHAR,
-    "character varying": sqltypes.VARCHAR,
-    "string": sqltypes.VARCHAR,
-    "text": sqltypes.VARCHAR,
-    "varchar": sqltypes.VARCHAR,
-    "blob": sqltypes.BLOB,
-    "bytea": sqltypes.BLOB,
-    "bytes": sqltypes.BLOB,
-    "json": sqltypes.JSON,
-    "jsonb": JSONB,
-    "uuid": UUID,
-    "inet": INET,
-}
 
 
 class _SavepointState(threading.local):
@@ -91,6 +48,14 @@ class CockroachDBDialect(PGDialect):
     statement_compiler = CockroachCompiler
     preparer = CockroachIdentifierPreparer
     ddl_compiler = CockroachDDLCompiler
+
+    multi_entries_to_ignore = frozenset(
+        [
+            (None, "geography_columns"),
+            (None, "geometry_columns"),
+            (None, "spatial_ref_sys"),
+        ]
+    )
 
     # Override connect so we can take disable_cockroachdb_telemetry as a connect_arg to sqlalchemy.
     # The option is not used any more, but removing it is a backwards-incompatible change.
@@ -142,6 +107,7 @@ class CockroachDBDialect(PGDialect):
         self._is_v254plus = self._is_v253plus and (" v25.3." not in sversion)
         self._is_v261plus = self._is_v254plus and (" v25.4." not in sversion)
         self._is_v262plus = self._is_v261plus and (" v26.1." not in sversion)
+        self._is_v263plus = self._is_v262plus and (" v26.2." not in sversion)
         self._has_native_json = self._is_v2plus
         self._has_native_jsonb = self._is_v2plus
         self._supports_savepoints = self._is_v201plus
@@ -152,7 +118,7 @@ class CockroachDBDialect(PGDialect):
         # PGDialect expects a postgres server version number here,
         # although we've overridden most of the places where it's
         # used.
-        return (9, 5, 0)
+        return (12, 0, 0)
 
     def get_table_names(self, conn, schema=None, **kw):
         # Upstream implementation needs correlated subqueries.
@@ -175,126 +141,123 @@ class CockroachDBDialect(PGDialect):
         return any(t == table for t in self.get_table_names(conn, schema=schema))
 
     def get_multi_columns(self, connection, schema, filter_names, scope, kind, **kw):
-        if not filter_names:
-            filter_names = self.get_table_names(connection, schema)
-        return {
-            (schema, table_name): self.get_columns(connection, table_name, schema, **kw)
-            for table_name in filter_names
-        }
-
-    # The upstream implementations of the reflection functions below depend on
-    # correlated subqueries which are not yet supported.
-    def get_columns(self, conn, table_name, schema=None, **kw):
         _include_hidden = kw.get("include_hidden", False)
-        if not self._is_v191plus:
-            # v2.x does not have is_generated or generation_expression
-            sql = (
-                "SELECT column_name, data_type, is_nullable::bool, column_default,"
-                "numeric_precision, numeric_scale, character_maximum_length, "
-                "NULL AS is_generated, NULL AS generation_expression, is_hidden::bool,"
-                "column_comment AS comment "
-                "FROM information_schema.columns "
-                "WHERE table_schema = :table_schema AND table_name = :table_name "
+        multi_columns = super().get_multi_columns(
+            connection, schema, filter_names, scope, kind, **kw
+        )
+        info_schema_columns = Table(
+            "columns",
+            MetaData(),
+            Column("table_schema", String),
+            Column("table_name", String),
+            Column("column_name", String),
+            Column("is_hidden", String),
+            schema="information_schema",
+        )
+        pg_class = pg_catalog.pg_class
+
+        # explicit schema: ("schema_name", "table_name")
+        to_get = [(item[0][0], item[0][1]) for item in multi_columns if item[0][0] is not None]
+        if to_get:
+            qry = select(
+                info_schema_columns.c.table_name,
+                info_schema_columns.c.column_name,
+                info_schema_columns.c.is_hidden,
+            ).where(
+                (
+                    tuple_(
+                        info_schema_columns.c.table_schema, info_schema_columns.c.table_name
+                    ).in_(to_get)
+                )
             )
-            sql += "" if _include_hidden else "AND NOT is_hidden::bool"
-            rows = conn.execute(
-                text(sql),
-                {"table_schema": schema or self.default_schema_name, "table_name": table_name},
-            )
+            result = connection.execute(qry)
+            is_hidden = {
+                (row.table_name, row.column_name): (row.is_hidden == "YES") for row in result
+            }
         else:
-            # v19.1 or later. Information schema columns are all usable.
-            sql = (
-                "SELECT column_name, data_type, is_nullable::bool, column_default, "
-                "numeric_precision, numeric_scale, character_maximum_length, "
-                "CASE is_generated WHEN 'ALWAYS' THEN true WHEN 'NEVER' THEN false "
-                "ELSE is_generated::bool END AS is_generated, "
-                "generation_expression, is_hidden::bool, crdb_sql_type, column_comment AS comment "
-                "FROM information_schema.columns "
-                "WHERE table_schema = :table_schema AND table_name = :table_name "
-            )
-            sql += "" if _include_hidden else "AND NOT is_hidden::bool"
-            rows = conn.execute(
-                text(sql),
-                {"table_schema": schema or self.default_schema_name, "table_name": table_name},
-            )
+            is_hidden = dict()
 
-        res = []
-        for row in rows:
-            name, type_str, nullable, default = row[:4]
-            if type_str == "ARRAY":
-                is_array = True
-                type_str, _ = row.crdb_sql_type.split("[", maxsplit=1)
-            else:
-                is_array = False
-            # When there are type parameters, attach them to the
-            # returned type object.
-            m = re.match(r"^(\w+(?: \w+)*)(?:\(([0-9, ]*)\))?$", type_str)
-            if m is None:
-                warn("Could not parse type name '%s'" % type_str)
-                typ = sqltypes.NULLTYPE
-            else:
-                type_name, type_args = m.groups()
-                try:
-                    type_class = _type_map[type_name.lower()]
-                except KeyError:
-                    warn(f"Did not recognize type '{type_name}' of column '{name}'")
-                    type_class = sqltypes.NULLTYPE
-                if type_args:
-                    typ = type_class(*[int(s.strip()) for s in type_args.split(",")])
-                elif type_class is sqltypes.DECIMAL:
-                    typ = type_class(
-                        precision=row.numeric_precision,
-                        scale=row.numeric_scale,
-                    )
-                elif type_class is sqltypes.VARCHAR or type_class is sqltypes.CHAR:
-                    typ = type_class(length=row.character_maximum_length)
-                else:
-                    typ = type_class
-            if row.is_generated:
-                # Currently, all computed columns are persisted.
-                computed = dict(sqltext=row.generation_expression, persisted=True)
-                default = None
-            else:
-                computed = None
-            # Check if a sequence is being used and adjust the default value.
-            autoincrement = False
-            if default is not None:
-                nextval_match = re.search(r"""(nextval\(')([^']+)('.*$)""", default)
-                unique_rowid_match = re.search(r"""unique_rowid\(""", default)
-                if nextval_match is not None or unique_rowid_match is not None:
-                    if issubclass(type_class, sqltypes.Integer):
-                        autoincrement = True
-                    # the default is related to a Sequence
-                    sch = schema
-                    if (
-                        nextval_match is not None
-                        and "." not in nextval_match.group(2)
-                        and sch is not None
-                    ):
-                        # unconditionally quote the schema name.  this could
-                        # later be enhanced to obey quoting rules /
-                        # "quote schema"
-                        default = (
-                            nextval_match.group(1)
-                            + ('"%s"' % sch)
-                            + "."
-                            + nextval_match.group(2)
-                            + nextval_match.group(3)
-                        )
-
-            column_info = dict(
-                name=name,
-                type=ARRAY(typ) if is_array else typ,
-                nullable=nullable,
-                default=default,
-                autoincrement=autoincrement,
-                is_hidden=row.is_hidden,
-                comment=row.comment,
+        # no schema specified: (None, "table_name")
+        visible_names = [
+            t[1] for t, _ in multi_columns if t[0] is None and t not in self.multi_entries_to_ignore
+        ]
+        qry = (
+            select(
+                pg_class.c.relname.label("table_name"),
+                info_schema_columns.c.column_name,
+                info_schema_columns.c.is_hidden,
             )
-            if computed is not None:
-                column_info["computed"] = computed
-            res.append(column_info)
-        return res
+            .select_from(
+                pg_class.join(pg_namespace, pg_class.c.relnamespace == pg_namespace.c.oid).join(
+                    info_schema_columns,
+                    and_(
+                        pg_namespace.c.nspname == info_schema_columns.c.table_schema,
+                        pg_class.c.relname == info_schema_columns.c.table_name,
+                    ),
+                )
+            )
+            .where(pg_class.c.relname.in_(visible_names))
+            .where(pg_catalog.pg_table_is_visible(pg_class.c.oid))
+            .where(pg_namespace.c.nspname != "pg_catalog")
+            .where(pg_namespace.c.nspname != "crdb_internal")
+            .where(pg_namespace.c.nspname != "information_schema")
+        )
+        result = connection.execute(qry)
+        is_hidden.update(
+            {(row.table_name, row.column_name): (row.is_hidden == "YES") for row in result}
+        )
+
+        to_return = []
+        for table, columns in multi_columns:
+            if table not in self.multi_entries_to_ignore:
+                for col in columns[:]:
+                    key = (table[1], col["name"])
+                    if is_hidden[key] and not _include_hidden:
+                        columns.remove(col)
+                    else:
+                        col["is_hidden"] = is_hidden[key]
+                        if col["default"] == "unique_rowid()":
+                            col["autoincrement"] = True
+
+                        # type mapping
+                        if isinstance(col["type"], BYTEA):
+                            col["type"] = BLOB()
+                        elif isinstance(col["type"], ARRAY) and isinstance(
+                            col["type"].item_type, BYTEA
+                        ):
+                            col["type"] = ARRAY(BLOB())
+                        elif isinstance(col["type"], NUMERIC):
+                            col["type"] = DECIMAL(col["type"].precision, col["type"].scale)
+                        elif isinstance(col["type"], ARRAY) and isinstance(
+                            col["type"].item_type, NUMERIC
+                        ):
+                            col["type"] = ARRAY(
+                                (
+                                    DECIMAL(
+                                        col["type"].item_type.precision, col["type"].item_type.scale
+                                    )
+                                )
+                            )
+                        elif isinstance(col["type"], (DOUBLE_PRECISION, REAL)):
+                            col["type"] = FLOAT()
+                        elif isinstance(col["type"], ARRAY) and isinstance(
+                            col["type"].item_type, (DOUBLE_PRECISION, REAL)
+                        ):
+                            col["type"] = ARRAY(FLOAT())
+                        elif isinstance(col["type"], (BIGINT, SMALLINT)):
+                            col["type"] = INTEGER()
+                        elif isinstance(col["type"], ARRAY) and isinstance(
+                            col["type"].item_type, (BIGINT, SMALLINT)
+                        ):
+                            col["type"] = ARRAY(INTEGER())
+                        elif isinstance(col["type"], TEXT):
+                            col["type"] = VARCHAR()
+                        elif isinstance(col["type"], ARRAY) and isinstance(
+                            col["type"].item_type, TEXT
+                        ):
+                            col["type"] = ARRAY(VARCHAR())
+                to_return.append((table, columns))
+        return to_return
 
     def get_indexes(self, conn, table_name, schema=None, **kw):
         if self._is_v192plus:
@@ -348,19 +311,11 @@ class CockroachDBDialect(PGDialect):
             )
         return result
 
-    def get_multi_indexes(
-        self, connection, schema, filter_names, scope, kind, **kw
-    ):
-        result = super().get_multi_indexes(
-            connection, schema, filter_names, scope, kind, **kw
-        )
+    def get_multi_indexes(self, connection, schema, filter_names, scope, kind, **kw):
+        result = super().get_multi_indexes(connection, schema, filter_names, scope, kind, **kw)
         if schema is None:
             result = dict(result)
-            for k in [
-                (None, "spatial_ref_sys"),
-                (None, "geometry_columns"),
-                (None, "geography_columns"),
-            ]:
+            for k in self.multi_entries_to_ignore:
                 result.pop(k, None)
         return result
 
@@ -392,11 +347,7 @@ class CockroachDBDialect(PGDialect):
         )
         if schema is None:
             result = dict(result)
-            for k in [
-                (None, "spatial_ref_sys"),
-                (None, "geometry_columns"),
-                (None, "geography_columns"),
-            ]:
+            for k in self.multi_entries_to_ignore:
                 result.pop(k, None)
         return result
 
@@ -418,19 +369,13 @@ class CockroachDBDialect(PGDialect):
                 res.append(index)
         return res
 
-    def get_multi_check_constraints(
-        self, connection, schema, filter_names, scope, kind, **kw
-    ):
+    def get_multi_check_constraints(self, connection, schema, filter_names, scope, kind, **kw):
         result = super().get_multi_check_constraints(
             connection, schema, filter_names, scope, kind, **kw
         )
         if schema is None:
             result = dict(result)
-            for k in [
-                (None, "spatial_ref_sys"),
-                (None, "geometry_columns"),
-                (None, "geography_columns"),
-            ]:
+            for k in self.multi_entries_to_ignore:
                 result.pop(k, None)
         return result
 
